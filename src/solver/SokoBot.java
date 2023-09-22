@@ -40,8 +40,13 @@ public class SokoBot {
     Set<Node> closedSet = new HashSet<>();
 
     Node startNode = initializeStartNode(itemsData);
-    openSet.add(startNode);
+    List<Point> goals = initializeGoals(mapData);
 
+    startNode.h = calculateHeuristic(startNode, goals);
+    startNode.f = startNode.g + startNode.h;
+
+    openSet.add(startNode);
+    
     while (!openSet.isEmpty()) {
       Node currentNode = openSet.poll();
 
@@ -64,15 +69,38 @@ public class SokoBot {
           continue;
         }
 
-        neighbor.parent = currentNode;
         neighbor.g = tentativeGScore;
-        neighbor.h = 0;
+        neighbor.h = calculateHeuristic(neighbor, goals);
         neighbor.f = neighbor.g + neighbor.h;
       }
-      
     }
-    
+
     return "lrlrlrlrlrlrlrlr";
+  }
+
+  public int calculateHeuristic(Node node, List<Point> goals) {
+    int totalManhattanDistance = 0;
+    for (Point crate : node.cratePositions) {
+      int minDistance = Integer.MAX_VALUE;
+      for (Point goal : goals) {
+        int distance = Math.abs(crate.x - goal.x) + Math.abs(crate.y - goal.y);
+        minDistance = Math.min(minDistance, distance);
+      }
+      totalManhattanDistance += minDistance;
+    }
+    return totalManhattanDistance;
+  }
+
+  public List<Point> initializeGoals(char[][] mapData) {
+    List<Point> goals = new ArrayList<>();
+    for (int y = 0; y < mapData.length; y++) {
+      for (int x = 0; x < mapData[y].length; x++) {
+        if (mapData[y][x] == '.') {
+          goals.add(new Point(x, y));
+        }
+      }
+    }
+    return goals;
   }
 
   public Node initializeStartNode(char[][] itemsData) {
@@ -192,5 +220,4 @@ public class SokoBot {
     }
     return false;
   }
-
 }
