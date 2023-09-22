@@ -16,7 +16,7 @@ public class SokoBot {
     } catch (Exception ex) {
       ex.printStackTrace();
     }
-    return "rrrrrrrrdddddddddlllllllll";
+    return "rdl";
   }
 
 }
