@@ -39,21 +39,40 @@ public class SokoBot {
     PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingInt(node -> node.f));
     Set<Node> closedSet = new HashSet<>();
 
+    Node startNode = initializeStartNode(itemsData);
+    openSet.add(startNode);
+
     while (!openSet.isEmpty()) {
       Node currentNode = openSet.poll();
 
-      if (isGoalState(currentNode)) {
-        // We've found the goal state, so return the path to get there
+      if (isGoalState(currentNode, mapData)) {
         return reconstructPath(currentNode);
       }
-    }
 
-    try {
-      Thread.sleep(3000);
-    } catch (Exception ex) {
-      ex.printStackTrace();
+      closedSet.add(currentNode);
+
+      for (Node neighbor: getNeighbors(currentNode, mapData, itemsData)) {
+        if (closedSet.contains(neighbor)) {
+          continue;
+        }
+
+        int tentativeGScore = currentNode.g + 1;
+
+        if (!openSet.contains(neighbor)) {
+          openSet.add(neighbor);
+        } else if (tentativeGScore >= neighbor.g) {
+          continue;
+        }
+
+        neighbor.parent = currentNode;
+        neighbor.g = tentativeGScore;
+        neighbor.h = 0;
+        neighbor.f = neighbor.g + neighbor.h;
+      }
+      
     }
-    return "udlr";
+    
+    return "lrlrlrlrlrlrlrlr";
   }
 
   public Node initializeStartNode(char[][] itemsData) {
@@ -74,10 +93,22 @@ public class SokoBot {
     return new Node(playerX, playerY, cratePositions);
   }
 
-  public boolean isGoalState(Node node) {
-    // In this example, we're not checking for the actual goal state, so always return false
-    return false;
+  public boolean isGoalState(Node node, char[][] mapData) {
+    // Check if all crates are on target positions
+    for (Point crate : node.cratePositions) {
+        int crateX = crate.x;
+        int crateY = crate.y;
+
+        // If the crate is not on a target position, it's not a goal state
+        if (mapData[crateY][crateX] != '.') {
+            return false;
+        }
+    }
+
+    // All crates are on target positions, it's a goal state
+    return true;
   }
+
 
   public String reconstructPath(Node node) {
     // Reconstruct the path from the start node to the current node
@@ -96,4 +127,70 @@ public class SokoBot {
     }
     return path.toString();
   }
+
+  public List<Node> getNeighbors(Node currentNode, char[][] mapData, char[][] itemsData) {
+    List<Node> neighbors = new ArrayList<>();
+    int playerX = currentNode.playerX;
+    int playerY = currentNode.playerY;
+
+    // Possible movements: up, down, left, right
+    int[] dX = {0, 0, -1, 1};
+    int[] dY = {-1, 1, 0, 0};
+
+    for (int i = 0; i < 4; i++) {
+        int newX = playerX + dX[i];
+        int newY = playerY + dY[i];
+
+        // Check if the new position is within bounds and is not a wall
+        if (newX >= 0 && newX < mapData[0].length && newY >= 0 && newY < mapData.length &&
+                mapData[newY][newX] != '#') {
+
+            // Check if there's a crate in the new position
+            boolean crateCollision = false;
+            for (Point crate : currentNode.cratePositions) {
+                if (crate.x == newX && crate.y == newY) {
+                    // Crate exists in the new position
+                    int newCrateX = crate.x + dX[i];
+                    int newCrateY = crate.y + dY[i];
+
+                    // Check if the new position for the crate is within bounds and is not a wall or another crate
+                    if (newCrateX >= 0 && newCrateX < mapData[0].length &&
+                            newCrateY >= 0 && newCrateY < mapData.length &&
+                            mapData[newCrateY][newCrateX] != '#' &&
+                            !crateCollision(newCrateX, newCrateY, currentNode.cratePositions)) {
+
+                        // Create a new node with the updated player and crate positions
+                        List<Point> newCratePositions = new ArrayList<>(currentNode.cratePositions);
+                        newCratePositions.remove(crate);
+                        newCratePositions.add(new Point(newCrateX, newCrateY));
+
+                        Node neighborNode = new Node(newX, newY, newCratePositions);
+                        neighborNode.parent = currentNode;
+                        neighbors.add(neighborNode);
+                        crateCollision = true;
+                    }
+                }
+            }
+
+            // If no crate collision, update the player position only
+            if (!crateCollision) {
+                Node neighborNode = new Node(newX, newY, new ArrayList<>(currentNode.cratePositions));
+                neighborNode.parent = currentNode;
+                neighbors.add(neighborNode);
+            }
+        }
+    }
+
+    return neighbors;
+  }
+
+  private boolean crateCollision(int x, int y, List<Point> cratePositions) {
+    for (Point crate : cratePositions) {
+        if (crate.x == x && crate.y == y) {
+            return true;
+        }
+    }
+    return false;
+  }
+
 }
