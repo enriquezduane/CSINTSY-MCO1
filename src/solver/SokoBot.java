@@ -38,10 +38,14 @@ public class SokoBot {
     Node startNode = initializeStartNode(itemsData);
     queue.add(startNode);
 
+    int count = 0;
+
     while (!queue.isEmpty()) {
       Node currentNode = queue.poll();
+      System.out.println("curr x: " + currentNode.playerX + " curr y: " + currentNode.playerY);
 
       if (isGoalState(currentNode, mapData)) {
+        System.out.println("States generated: " + count);
         return reconstructPath(currentNode);
       }
 
@@ -53,6 +57,7 @@ public class SokoBot {
           visited.add(neighbor);
         }
       }
+      count++;
     }
 
     return "lrlrlrlrlrlrlrlr";
@@ -89,6 +94,7 @@ public class SokoBot {
 
   public boolean isGoalState(Node node, char[][] mapData) {
     // Check if all crates are on target positions
+
     for (Point crate : node.cratePositions) {
       int crateX = crate.x;
       int crateY = crate.y;
@@ -97,6 +103,7 @@ public class SokoBot {
       if (mapData[crateY][crateX] != '.') {
         return false;
       }
+      // return true;
     }
 
     // All crates are on target positions, it's a goal state
