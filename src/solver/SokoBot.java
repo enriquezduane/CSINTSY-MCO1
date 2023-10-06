@@ -9,14 +9,41 @@ import java.util.Set;
 
 class Node {
   int playerX, playerY;
-  List<Point> cratePositions;
+  HashSet<Point> cratePositions;
   Node parent;
 
-  Node(int playerX, int playerY, List<Point> cratePositions) {
+  Node(int playerX, int playerY, HashSet<Point> cratePositions) {
     this.playerX = playerX;
     this.playerY = playerY;
     this.cratePositions = cratePositions;
     this.parent = null;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true; // check if same instance
+    if (o == null || getClass() != o.getClass())
+      return false;
+
+    Node node = (Node) o;
+
+    if (playerX != node.playerX)
+      return false;
+    if (playerY != node.playerY)
+      return false;
+
+    // Here we're comparing the crate positions lists.
+    // This assumes the crate positions in both lists are in the same order.
+    return cratePositions.equals(node.cratePositions);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = playerX;
+    result = 31 * result + playerY;
+    result = 31 * result + cratePositions.hashCode();
+    return result;
   }
 }
 
@@ -26,6 +53,21 @@ class Point {
   Point(int x, int y) {
     this.x = x;
     this.y = y;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
+    Point point = (Point) o;
+    return x == point.x && y == point.y;
+  }
+
+  @Override
+  public int hashCode() {
+    return 31 * x + y;
   }
 }
 
@@ -38,14 +80,13 @@ public class SokoBot {
     Node startNode = initializeStartNode(itemsData);
     queue.add(startNode);
 
-    int count = 0;
-
+    int counter = 0;
     while (!queue.isEmpty()) {
       Node currentNode = queue.poll();
       System.out.println("curr x: " + currentNode.playerX + " curr y: " + currentNode.playerY);
 
       if (isGoalState(currentNode, mapData)) {
-        System.out.println("States generated: " + count);
+        System.out.println("count: " + counter);
         return reconstructPath(currentNode);
       }
 
@@ -57,10 +98,10 @@ public class SokoBot {
           visited.add(neighbor);
         }
       }
-      count++;
+      counter++;
     }
 
-    return "lrlrlrlrlrlrlrlr";
+    return "lrlrlrlrlrlrlrlrlrlrlrlrlrrllrrllrrllrlrlrllrlrllrrl";
   }
 
   public List<Point> initializeGoals(char[][] mapData) {
@@ -77,7 +118,7 @@ public class SokoBot {
 
   public Node initializeStartNode(char[][] itemsData) {
     int playerX = -1, playerY = -1;
-    List<Point> cratePositions = new ArrayList<>();
+    HashSet<Point> cratePositions = new HashSet<>();
 
     for (int y = 0; y < itemsData.length; y++) {
       for (int x = 0; x < itemsData[y].length; x++) {
@@ -103,7 +144,6 @@ public class SokoBot {
       if (mapData[crateY][crateX] != '.') {
         return false;
       }
-      // return true;
     }
 
     // All crates are on target positions, it's a goal state
@@ -145,11 +185,11 @@ public class SokoBot {
       if (newX >= 0 && newX < mapData[0].length && newY >= 0 && newY < mapData.length &&
           mapData[newY][newX] != '#') {
 
-        List<Point> newCratePositions = new ArrayList<>(currentNode.cratePositions);
+        HashSet<Point> newCratePositions = new HashSet<>(currentNode.cratePositions);
         boolean isCrateMoved = false;
+        List<Point> cratesList = new ArrayList<>(newCratePositions);
 
-        for (Point crate : new ArrayList<>(newCratePositions)) { // Iterate over a new list to avoid
-                                                                 // ConcurrentModificationException
+        for (Point crate : cratesList) {
           if (crate.x == newX && crate.y == newY) {
             int newCrateX = crate.x + dX[i];
             int newCrateY = crate.y + dY[i];
@@ -181,12 +221,7 @@ public class SokoBot {
     return neighbors;
   }
 
-  private boolean crateCollision(int x, int y, List<Point> cratePositions) {
-    for (Point crate : cratePositions) {
-      if (crate.x == x && crate.y == y) {
-        return true;
-      }
-    }
-    return false;
+  private boolean crateCollision(int x, int y, HashSet<Point> cratePositions) {
+    return cratePositions.contains(new Point(x, y));
   }
 }
