@@ -24,5 +24,5 @@ remove_files "${files_to_remove[@]}"
 
 compile_class src/main/Driver.java
 
-java -classpath src main.Driver twoboxes1 bot
+java -classpath src main.Driver testlevel bot
 

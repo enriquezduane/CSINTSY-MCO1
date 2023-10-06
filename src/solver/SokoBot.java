@@ -1,14 +1,14 @@
 package solver;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
+import java.util.PriorityQueue;
 import java.util.Set;
 
 class Node {
-  int playerX, playerY;
+  int playerX, playerY, cost;
   HashSet<Point> cratePositions;
   Node parent;
 
@@ -17,6 +17,7 @@ class Node {
     this.playerY = playerY;
     this.cratePositions = cratePositions;
     this.parent = null;
+    this.cost = 0;
   }
 
   @Override
@@ -74,10 +75,13 @@ class Point {
 public class SokoBot {
 
   public String solveSokobanPuzzle(int width, int height, char[][] mapData, char[][] itemsData) {
-    Queue<Node> queue = new LinkedList<>();
+
+    PriorityQueue<Node> queue = new PriorityQueue<>(
+        Comparator.comparingInt(node -> node.cost + heuristic(node, mapData)));
     Set<Node> visited = new HashSet<>();
 
     Node startNode = initializeStartNode(itemsData);
+    startNode.cost = 0;
     queue.add(startNode);
 
     int counter = 0;
@@ -93,8 +97,9 @@ public class SokoBot {
       visited.add(currentNode);
 
       for (Node neighbor : getNeighbors(currentNode, mapData, itemsData)) {
-        if (!visited.contains(neighbor)) {
-          queue.add(neighbor);
+        if (!visited.contains(neighbor) || currentNode.cost + 1 < neighbor.cost) {
+          neighbor.cost = currentNode.cost + 1;
+          queue.offer(neighbor);
           visited.add(neighbor);
         }
       }
@@ -102,6 +107,23 @@ public class SokoBot {
     }
 
     return "lrlrlrlrlrlrlrlrlrlrlrlrlrrllrrllrrllrlrlrllrlrllrrl";
+  }
+
+  private int heuristic(Node node, char[][] mapData) {
+    int totalDistance = 0;
+    for (Point crate : node.cratePositions) {
+      int minDistance = Integer.MAX_VALUE;
+      for (int y = 0; y < mapData.length; y++) {
+        for (int x = 0; x < mapData[y].length; x++) {
+          if (mapData[y][x] == '.') {
+            int distance = Math.abs(crate.x - x) + Math.abs(crate.y - y);
+            minDistance = Math.min(minDistance, distance);
+          }
+        }
+      }
+      totalDistance += minDistance;
+    }
+    return totalDistance;
   }
 
   public List<Point> initializeGoals(char[][] mapData) {
@@ -214,6 +236,7 @@ public class SokoBot {
         if (isCrateMoved || !crateCollision(newX, newY, newCratePositions)) {
           Node neighborNode = new Node(newX, newY, newCratePositions);
           neighborNode.parent = currentNode;
+          neighborNode.cost = currentNode.cost + 1;
           neighbors.add(neighborNode);
         }
       }
