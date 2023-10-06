@@ -1,25 +1,21 @@
 package solver;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
 
 class Node {
   int playerX, playerY;
   List<Point> cratePositions;
-  int g, h, f;
   Node parent;
 
   Node(int playerX, int playerY, List<Point> cratePositions) {
     this.playerX = playerX;
     this.playerY = playerY;
     this.cratePositions = cratePositions;
-    this.f = 0;
-    this.g = 0;
-    this.h = 0;
     this.parent = null;
   }
 }
@@ -36,59 +32,30 @@ class Point {
 public class SokoBot {
 
   public String solveSokobanPuzzle(int width, int height, char[][] mapData, char[][] itemsData) {
-    PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingInt(node -> node.f));
-    Set<Node> closedSet = new HashSet<>();
+    Queue<Node> queue = new LinkedList<>();
+    Set<Node> visited = new HashSet<>();
 
     Node startNode = initializeStartNode(itemsData);
-    List<Point> goals = initializeGoals(mapData);
+    queue.add(startNode);
 
-    startNode.h = calculateHeuristic(startNode, goals);
-    startNode.f = startNode.g + startNode.h;
-
-    openSet.add(startNode);
-
-    while (!openSet.isEmpty()) {
-      Node currentNode = openSet.poll();
+    while (!queue.isEmpty()) {
+      Node currentNode = queue.poll();
 
       if (isGoalState(currentNode, mapData)) {
         return reconstructPath(currentNode);
       }
 
-      closedSet.add(currentNode);
+      visited.add(currentNode);
 
       for (Node neighbor : getNeighbors(currentNode, mapData, itemsData)) {
-        if (closedSet.contains(neighbor)) {
-          continue;
+        if (!visited.contains(neighbor)) {
+          queue.add(neighbor);
+          visited.add(neighbor);
         }
-
-        int tentativeGScore = currentNode.g + 1;
-
-        if (!openSet.contains(neighbor)) {
-          openSet.add(neighbor);
-        } else if (tentativeGScore >= neighbor.g) {
-          continue;
-        }
-
-        neighbor.g = tentativeGScore;
-        neighbor.h = calculateHeuristic(neighbor, goals);
-        neighbor.f = neighbor.g + neighbor.h;
       }
     }
 
     return "lrlrlrlrlrlrlrlr";
-  }
-
-  public int calculateHeuristic(Node node, List<Point> goals) {
-    int totalManhattanDistance = 0;
-    for (Point crate : node.cratePositions) {
-      int minDistance = Integer.MAX_VALUE;
-      for (Point goal : goals) {
-        int distance = Math.abs(crate.x - goal.x) + Math.abs(crate.y - goal.y);
-        minDistance = Math.min(minDistance, distance);
-      }
-      totalManhattanDistance += minDistance;
-    }
-    return totalManhattanDistance;
   }
 
   public List<Point> initializeGoals(char[][] mapData) {
