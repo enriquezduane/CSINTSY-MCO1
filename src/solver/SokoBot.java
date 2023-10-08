@@ -78,6 +78,7 @@ public class SokoBot {
 
     PriorityQueue<Node> queue = new PriorityQueue<>(
         Comparator.comparingInt(node -> node.cost + heuristic(node, mapData)));
+
     Set<Node> visited = new HashSet<>();
 
     Node startNode = initializeStartNode(itemsData);
@@ -87,7 +88,8 @@ public class SokoBot {
     int counter = 0;
     while (!queue.isEmpty()) {
       Node currentNode = queue.poll();
-      System.out.println("curr x: " + currentNode.playerX + " curr y: " + currentNode.playerY);
+      System.out.println("curr x: " + currentNode.playerX + " curr y: " +
+          currentNode.playerY);
 
       if (isGoalState(currentNode, mapData)) {
         System.out.println("count: " + counter);
@@ -172,6 +174,21 @@ public class SokoBot {
     return true;
   }
 
+  private boolean isInCorner(Point crate, char[][] mapData) {
+    int x = crate.x;
+    int y = crate.y;
+    if (mapData[y][x] == '.') {
+      return false; // It's a goal, so not a deadlock
+    }
+    if ((x > 0 && y > 0 && mapData[y - 1][x] == '#' && mapData[y][x - 1] == '#') ||
+        (x > 0 && y < mapData.length - 1 && mapData[y + 1][x] == '#' && mapData[y][x - 1] == '#') ||
+        (x < mapData[0].length - 1 && y > 0 && mapData[y - 1][x] == '#' && mapData[y][x + 1] == '#') ||
+        (x < mapData[0].length - 1 && y < mapData.length - 1 && mapData[y + 1][x] == '#' && mapData[y][x + 1] == '#')) {
+      return true;
+    }
+    return false;
+  }
+
   public String reconstructPath(Node node) {
     // Reconstruct the path from the start node to the current node
     StringBuilder path = new StringBuilder();
@@ -212,9 +229,18 @@ public class SokoBot {
         List<Point> cratesList = new ArrayList<>(newCratePositions);
 
         for (Point crate : cratesList) {
+          if (isInCorner(crate, mapData)) {
+            return neighbors; // Exit early as this is an invalid state.
+          }
           if (crate.x == newX && crate.y == newY) {
             int newCrateX = crate.x + dX[i];
             int newCrateY = crate.y + dY[i];
+            Point movedCrate = new Point(newCrateX, newCrateY);
+
+            if (isInCorner(movedCrate, mapData)) {
+              continue; // This move leads to a deadlock, so skip this move, but keep evaluating other
+                        // moves.
+            }
 
             if (newCrateX >= 0 && newCrateX < mapData[0].length &&
                 newCrateY >= 0 && newCrateY < mapData.length &&
